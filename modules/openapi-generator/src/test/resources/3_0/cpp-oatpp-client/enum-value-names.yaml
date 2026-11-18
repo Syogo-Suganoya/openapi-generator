@@ -1,0 +1,8 @@
+openapi: 3.0.1
+info: { title: repro, version: 1.0.0 }
+paths: {}
+components:
+  schemas:
+    Mode:
+      type: string
+      enum: [fast-mode, slow-mode, available, 1st, delete, with space]
