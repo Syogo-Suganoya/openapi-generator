@@ -53,6 +53,8 @@ import static org.openapitools.codegen.utils.StringUtils.*;
 
 
 public abstract class AbstractPythonCodegen extends DefaultCodegen implements CodegenConfig {
+    private static final String X_PY_REJECTS_ADDITIONAL_PROPERTIES = "x-py-rejects-additional-properties";
+
     private final Logger LOGGER = LoggerFactory.getLogger(AbstractPythonCodegen.class);
 
     public static final String MAP_NUMBER_TO = "mapNumberTo";
@@ -1021,6 +1023,24 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
         return processed;
     }
 
+    /**
+     * Whether the generated model rejects unknown fields in {@code from_dict}.
+     * <p>
+     * An explicit {@code additionalProperties: false} in the schema always rejects them. When the schema does not
+     * define {@code additionalProperties}, they are rejected only if the {@code disallowAdditionalPropertiesIfNotPresent}
+     * option is explicitly enabled (the existing behavior).
+     */
+    private boolean rejectsAdditionalProperties(CodegenModel model) {
+        if (model.isAdditionalPropertiesTrue) {
+            return false;
+        }
+        if (Boolean.TRUE.equals(additionalProperties.get(CodegenConstants.DISALLOW_ADDITIONAL_PROPERTIES_IF_NOT_PRESENT))) {
+            return true;
+        }
+        Schema schema = openAPI == null ? null : ModelUtils.getSchemas(openAPI).get(model.name);
+        return schema != null && Boolean.FALSE.equals(schema.getAdditionalProperties());
+    }
+
     private ModelsMap postProcessModelsMap(ModelsMap objs) {
         // process enum in models
         objs = postProcessModelsEnum(objs);
@@ -1038,6 +1058,10 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
 
             PythonImports moduleImports = new PythonImports();
             CodegenModel model = m.getModel();
+
+            if (rejectsAdditionalProperties(model)) {
+                model.vendorExtensions.put(X_PY_REJECTS_ADDITIONAL_PROPERTIES, true);
+            }
 
             if (model.vendorExtensions.containsKey(X_PY_PREPROCESSES_INPUT_NAMES)) {
                 moduleImports.add("collections.abc", "Mapping as _Mapping");
@@ -1114,9 +1138,8 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
                 moduleImports.add("typing", "ClassVar");
                 moduleImports.add("typing", "Dict");
                 moduleImports.add("typing", "Any");
-                if (this.disallowAdditionalPropertiesIfNotPresent || model.isAdditionalPropertiesTrue) {
-                    moduleImports.add("typing", "List");
-                }
+                // used by "__properties: ClassVar[List[str]]", which every generic model declares
+                moduleImports.add("typing", "List");
             }
 
             // if pydantic model
