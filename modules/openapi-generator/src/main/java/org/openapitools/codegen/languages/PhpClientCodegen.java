@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -46,6 +47,11 @@ public class PhpClientCodegen extends AbstractPhpCodegen {
 
     public PhpClientCodegen() {
         super();
+
+        // methods declared by model_generic.mustache / ModelInterface.mustache
+        reservedModelMethodNames.addAll(Arrays.asList(
+                "getmodelname", "getters", "setters", "setifexists",
+                "getopenapinullablessettonull", "setopenapinullablessettonull"));
 
         modifyFeatureSet(features -> features
                 .includeDocumentationFeatures(DocumentationFeature.Readme)
