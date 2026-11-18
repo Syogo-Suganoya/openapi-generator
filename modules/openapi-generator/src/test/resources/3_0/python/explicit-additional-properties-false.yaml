@@ -1,0 +1,19 @@
+openapi: 3.0.1
+info: { title: repro, version: 1.0.0 }
+paths: {}
+components:
+  schemas:
+    Strict:
+      type: object
+      additionalProperties: false
+      properties:
+        a: { type: string }
+    Silent:
+      type: object
+      properties:
+        a: { type: string }
+    Open:
+      type: object
+      additionalProperties: true
+      properties:
+        a: { type: string }

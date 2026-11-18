@@ -2083,4 +2083,39 @@ public class PythonClientCodegenTest {
         final Path pyproject = Paths.get(output, "pyproject.toml");
         assertFileContains(pyproject, "{ include = \"openapi_client\", from = \"src\" },", "include = [\"src/openapi_client/py.typed\"]", "\"src/openapi_client\",");
     }
+
+    @DataProvider(name = "disallowAdditionalPropertiesIfNotPresentValues")
+    public Object[][] disallowAdditionalPropertiesIfNotPresentValues() {
+        // null = option not set
+        return new Object[][]{{null}, {"false"}, {"true"}};
+    }
+
+    @Test(dataProvider = "disallowAdditionalPropertiesIfNotPresentValues")
+    public void testExplicitAdditionalPropertiesFalseRejectsUnknownFields(String disallowIfNotPresent) throws IOException {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+
+        final CodegenConfigurator configurator = new CodegenConfigurator()
+                .setGeneratorName("python")
+                .setInputSpec("src/test/resources/3_0/python/explicit-additional-properties-false.yaml")
+                .setOutputDir(output.getAbsolutePath().replace("\\", "/"));
+        if (disallowIfNotPresent != null) {
+            configurator.addAdditionalProperty(CodegenConstants.DISALLOW_ADDITIONAL_PROPERTIES_IF_NOT_PRESENT, disallowIfNotPresent);
+        }
+        new DefaultGenerator().opts(configurator.toClientOptInput()).generate().forEach(File::deleteOnExit);
+
+        final String rejectLoop = "raise errors for additional fields in the input";
+        final Path models = output.toPath().resolve("openapi_client/models");
+
+        // explicit "additionalProperties: false" always rejects unknown fields
+        assertFileContains(models.resolve("strict.py"), rejectLoop, "from typing import Any, ClassVar, Dict, List, Optional");
+        // explicit "additionalProperties: true" never does
+        TestUtils.assertFileNotContains(models.resolve("open.py"), rejectLoop);
+        // when not defined, only if disallowAdditionalPropertiesIfNotPresent is enabled (unchanged behavior)
+        if ("true".equals(disallowIfNotPresent)) {
+            assertFileContains(models.resolve("silent.py"), rejectLoop);
+        } else {
+            TestUtils.assertFileNotContains(models.resolve("silent.py"), rejectLoop);
+        }
+    }
 }
