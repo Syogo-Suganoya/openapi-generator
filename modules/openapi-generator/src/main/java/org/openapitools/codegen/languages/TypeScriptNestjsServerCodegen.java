@@ -435,12 +435,24 @@ public class TypeScriptNestjsServerCodegen extends AbstractTypeScriptClientCodeg
     @Override
     public Map<String, ModelsMap> postProcessAllModels(Map<String, ModelsMap> objs) {
         Map<String, ModelsMap> result = super.postProcessAllModels(objs);
+        // The model files are named after the original schema name (e.g. "Overlap_oneOf_1" -> "overlap-one-of-1"),
+        // which may differ from the file name derived from the class name ("OverlapOneOf1" -> "overlap-one-of1").
+        // Use the actual file name of each model so that the imports match the generated files.
+        Map<String, String> modelFilenames = new HashMap<>();
+        for (ModelsMap entry : result.values()) {
+            for (ModelMap mo : entry.getModels()) {
+                CodegenModel cm = mo.getModel();
+                if (cm.classFilename != null) {
+                    modelFilenames.put(cm.classname, cm.classFilename);
+                }
+            }
+        }
         for (ModelsMap entry : result.values()) {
             for (ModelMap mo : entry.getModels()) {
                 CodegenModel cm = mo.getModel();
                 // Add additional filename information for imports
                 Set<String> parsedImports = parseImports(cm);
-                mo.put("tsImports", toTsImports(cm, parsedImports));
+                mo.put("tsImports", toTsImports(cm, parsedImports, modelFilenames));
             }
         }
         return result;
@@ -468,14 +480,15 @@ public class TypeScriptNestjsServerCodegen extends AbstractTypeScriptClientCodeg
         return newImports;
     }
 
-    private List<Map<String, String>> toTsImports(CodegenModel cm, Set<String> imports) {
+    private List<Map<String, String>> toTsImports(CodegenModel cm, Set<String> imports, Map<String, String> modelFilenames) {
         List<Map<String, String>> tsImports = new ArrayList<>();
         for (String im : imports) {
             if (!im.equals(cm.classname)) {
                 HashMap<String, String> tsImport = new HashMap<>();
                 // TVG: This is used as class name in the import statements of the model file
                 tsImport.put("classname", im);
-                tsImport.put("filename", toModelFilename(removeModelPrefixSuffix(im)));
+                String filename = modelFilenames.get(im);
+                tsImport.put("filename", filename != null ? filename : toModelFilename(removeModelPrefixSuffix(im)));
                 tsImports.add(tsImport);
             }
         }
