@@ -51,6 +51,11 @@ public class PhpNextgenClientCodegen extends AbstractPhpCodegen {
     public PhpNextgenClientCodegen() {
         super();
 
+        // methods declared by model_generic.mustache / ModelInterface.mustache
+        reservedModelMethodNames.addAll(Arrays.asList(
+                "getmodelname", "getters", "setters", "setifexists",
+                "getopenapinullablessettonull", "setopenapinullablessettonull"));
+
         // override default src and test folders to comply PSD skeleton
         setSrcBasePath("src");
         setTestBasePath("tests");

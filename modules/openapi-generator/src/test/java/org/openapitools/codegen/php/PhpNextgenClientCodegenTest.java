@@ -818,4 +818,32 @@ public class PhpNextgenClientCodegenTest {
                 a -> a.contains("Configuration::getDefaultConfiguration()->getBooleanFormatForQueryString()"),
                 "ObjectSerializer must only fall back to the default configuration if no configuration is given");
     }
+
+    @Test
+    public void testPropertyAccessorsDoNotClashWithModelMethods() throws Exception {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+
+        final org.openapitools.codegen.config.CodegenConfigurator configurator = new org.openapitools.codegen.config.CodegenConfigurator()
+                .setGeneratorName("php-nextgen")
+                .setInputSpec("src/test/resources/3_0/php/model-property-reserved-method-names.yaml")
+                .setOutputDir(output.getAbsolutePath().replace("\\", "/"));
+        new DefaultGenerator().opts(configurator.toClientOptInput()).generate().forEach(File::deleteOnExit);
+
+        java.nio.file.Path model = output.toPath().resolve("src/Model/UsedBy.php");
+        // getters/setters of properties must not clash with the methods declared by the model template
+        TestUtils.assertFileContains(model,
+                "public function getModelName()",
+                "public function getModelNameProperty(): ?string",
+                "public function setModelNameProperty(",
+                "'model_name' => 'getModelNameProperty'",
+                "'model_name' => 'setModelNameProperty'",
+                "public function getIfExistsProperty(): ?bool",
+                "public function setIfExistsProperty(",
+                "public function getName(): ?string",
+                "public function setName(");
+        TestUtils.assertFileNotContains(model,
+                "public function getModelName(): ?string",
+                "public function setIfExists(?bool");
+    }
 }

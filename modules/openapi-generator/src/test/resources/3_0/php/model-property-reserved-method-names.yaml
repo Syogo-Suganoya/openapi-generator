@@ -1,0 +1,11 @@
+openapi: 3.0.1
+info: { title: repro, version: 1.0.0 }
+paths: {}
+components:
+  schemas:
+    UsedBy:
+      type: object
+      properties:
+        model_name: { type: string }
+        if_exists: { type: boolean }
+        name: { type: string }

@@ -209,4 +209,30 @@ public class PhpClientCodegenTest {
         Assert.assertTrue(modelPhp.contains("mb_strlen($this->container['title']) > 10"), modelPhp);
         Assert.assertTrue(modelPhp.contains("mb_strlen($title) > 10"), modelPhp);
     }
+
+    @Test
+    public void testPropertyAccessorsDoNotClashWithModelMethods() throws Exception {
+        File output = Files.createTempDirectory("test").toFile().getCanonicalFile();
+        output.deleteOnExit();
+
+        final org.openapitools.codegen.config.CodegenConfigurator configurator = new org.openapitools.codegen.config.CodegenConfigurator()
+                .setGeneratorName("php")
+                .setInputSpec("src/test/resources/3_0/php/model-property-reserved-method-names.yaml")
+                .setOutputDir(output.getAbsolutePath().replace("\\", "/"));
+        new DefaultGenerator().opts(configurator.toClientOptInput()).generate().forEach(File::deleteOnExit);
+
+        java.nio.file.Path model = output.toPath().resolve("lib/Model/UsedBy.php");
+        // getters/setters of properties must not clash with the methods declared by the model template
+        TestUtils.assertFileContains(model,
+                "public function getModelName()",
+                "public function getModelNameProperty()",
+                "public function setModelNameProperty(",
+                "'model_name' => 'getModelNameProperty'",
+                "'model_name' => 'setModelNameProperty'",
+                "public function getIfExistsProperty()",
+                "public function setIfExistsProperty(",
+                "public function getName()",
+                "public function setName(");
+        TestUtils.assertFileNotContains(model, "public function setIfExists($if_exists)");
+    }
 }

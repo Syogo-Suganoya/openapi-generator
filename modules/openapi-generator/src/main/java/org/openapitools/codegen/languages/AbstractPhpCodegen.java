@@ -76,6 +76,13 @@ public abstract class AbstractPhpCodegen extends DefaultCodegen implements Codeg
     protected String abstractNamePrefix = "Abstract", abstractNameSuffix = "";
     protected String traitNamePrefix = "", traitNameSuffix = "Trait";
 
+    /**
+     * Names (lower case, as PHP method names are case-insensitive) of the methods declared by the model
+     * templates themselves. Property getters/setters must not use these names, otherwise the generated
+     * class declares the same method twice (e.g. a "model_name" property and ModelInterface::getModelName()).
+     */
+    protected Set<String> reservedModelMethodNames = new HashSet<>();
+
     private Map<String, String> schemaKeyToModelNameCache = new HashMap<>();
 
     public AbstractPhpCodegen() {
@@ -504,6 +511,30 @@ public abstract class AbstractPhpCodegen extends DefaultCodegen implements Codeg
         }
 
         return toModelName(type);
+    }
+
+    @Override
+    public String toGetter(String name) {
+        return conflictsWithReservedModelMethod(name) ? "get" + getterAndSetterCapitalize(name) + "Property" : super.toGetter(name);
+    }
+
+    @Override
+    public String toBooleanGetter(String name) {
+        return conflictsWithReservedModelMethod(name) ? "get" + getterAndSetterCapitalize(name) + "Property" : super.toBooleanGetter(name);
+    }
+
+    @Override
+    public String toSetter(String name) {
+        return conflictsWithReservedModelMethod(name) ? "set" + getterAndSetterCapitalize(name) + "Property" : super.toSetter(name);
+    }
+
+    /**
+     * Whether the default getter or setter of the given property clashes with a method declared by the model
+     * templates. In that case both the getter and the setter get a "Property" suffix so that they stay a pair.
+     */
+    private boolean conflictsWithReservedModelMethod(String name) {
+        return reservedModelMethodNames.contains(super.toGetter(name).toLowerCase(Locale.ROOT))
+                || reservedModelMethodNames.contains(super.toSetter(name).toLowerCase(Locale.ROOT));
     }
 
     public void setParameterNamingConvention(String variableNamingConvention) {
