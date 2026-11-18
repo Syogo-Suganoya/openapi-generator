@@ -726,6 +726,17 @@ public class CodegenConfigurator {
         // TODO: Move custom validations to a separate type as part of a "Workflow"
         Set<String> validationMessages = new HashSet<>(null != result.getMessages() ? result.getMessages() : new ArrayList<>());
         OpenAPI specification = result.getOpenAPI();
+
+        // The parser reports dangling local $ref for OpenAPI 3.x documents, but not for Swagger 2.0 documents
+        // converted to OpenAPI 3.x. Report every reference to a missing schema that the parser did not already flag.
+        if (specification != null) {
+            for (String ref : ModelUtils.getUnresolvedSchemaReferences(specification)) {
+                if (validationMessages.stream().noneMatch(msg -> msg.contains(ref))) {
+                    validationMessages.add("schema reference " + ref + " cannot be resolved: no such schema is defined");
+                }
+            }
+        }
+
         // TODO: The line below could be removed when at least one of the issue below has been resolved.
         // https://github.com/swagger-api/swagger-parser/issues/1369
         // https://github.com/swagger-api/swagger-parser/pull/1374

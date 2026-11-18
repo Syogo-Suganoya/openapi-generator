@@ -278,4 +278,29 @@ public class CodegenConfiguratorTest {
         // existing, structured SpecValidationException rather than the new generic message.
         Assertions.assertThrows(SpecValidationException.class, configurator::toContext);
     }
+
+    @Test
+    public void shouldReportUnresolvedSchemaReferencesInSwagger2Spec() {
+        CodegenConfigurator configurator = new CodegenConfigurator()
+                .setInputSpec("src/test/resources/2_0/issue_24832_unresolved_ref.yaml")
+                .setGeneratorName("java");
+
+        SpecValidationException ex = Assertions.assertThrows(SpecValidationException.class, configurator::toContext);
+        String message = ex.getMessage();
+        assertTrue(message.contains("#/components/schemas/DoesNotExist cannot be resolved"), message);
+        assertTrue(message.contains("#/components/schemas/MissingChild cannot be resolved"), message);
+        assertFalse(message.contains("#/components/schemas/Existing cannot be resolved"), message);
+    }
+
+    @Test
+    public void shouldNotDuplicateUnresolvedSchemaReferenceAlreadyReportedByParser() {
+        CodegenConfigurator configurator = new CodegenConfigurator()
+                .setInputSpec("src/test/resources/3_0/issue_24832_unresolved_ref.yaml")
+                .setGeneratorName("java");
+
+        SpecValidationException ex = Assertions.assertThrows(SpecValidationException.class, configurator::toContext);
+        String message = ex.getMessage();
+        assertTrue(message.contains("Error count: 1,"), message);
+        assertFalse(message.contains("cannot be resolved"), message);
+    }
 }

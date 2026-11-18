@@ -1,0 +1,24 @@
+swagger: '2.0'
+info:
+  title: Undefined Schema Reproduction
+  version: '1.0.0'
+paths:
+  /test:
+    post:
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/DoesNotExist'
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/definitions/Existing'
+definitions:
+  Existing:
+    type: object
+    properties:
+      child:
+        $ref: '#/definitions/MissingChild'
