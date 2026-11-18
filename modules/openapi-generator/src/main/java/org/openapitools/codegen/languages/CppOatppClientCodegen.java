@@ -474,4 +474,21 @@ public class CppOatppClientCodegen extends AbstractCppCodegen {
     public void setAddExternalLibs(boolean value) {
         isAddExternalLibs = value;
     }
+
+    /**
+     * The enum values are rendered as static functions of the "...Values" class, so the name must be a valid
+     * C++ identifier. Unlike the default implementation the case of the value is preserved, so that values
+     * which already are valid identifiers (e.g. "available") keep their existing function name.
+     */
+    @Override
+    public String toEnumVarName(String value, String datatype) {
+        if (value.isEmpty()) {
+            return "empty";
+        }
+        String name = value.replaceAll("[^A-Za-z0-9_]", "_");
+        if (isReservedWord(name) || name.matches("^\\d.*")) {
+            return escapeReservedWord(name);
+        }
+        return name;
+    }
 }
