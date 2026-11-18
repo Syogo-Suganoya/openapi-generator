@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info: { title: repro, version: 1.0.0 }
+paths:
+  /overlap:
+    get:
+      operationId: getOverlap
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Overlap' }
+components:
+  schemas:
+    Overlap:
+      oneOf:
+        - type: object
+          properties:
+            a: { type: string }
+        - type: object
+          properties:
+            b: { type: integer }
