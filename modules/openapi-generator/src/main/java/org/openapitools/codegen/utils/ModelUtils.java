@@ -205,6 +205,44 @@ public class ModelUtils {
     }
 
     /**
+     * Return the local schema references (e.g. {@code #/components/schemas/Foo}) used in the specification
+     * that do not point to an existing entry in the 'components/schemas' section.
+     * <p>
+     * Both the schemas reachable from the paths and the schemas declared in 'components/schemas' are inspected.
+     *
+     * @param openAPI specification
+     * @return the unresolved references, in the order they were first found
+     */
+    public static List<String> getUnresolvedSchemaReferences(OpenAPI openAPI) {
+        Set<String> unresolved = new LinkedHashSet<>();
+        if (openAPI == null) {
+            return new ArrayList<>(unresolved);
+        }
+
+        final String prefix = "#/components/schemas/";
+        Map<String, Schema> schemas = getSchemas(openAPI);
+        OpenAPISchemaVisitor visitor = (s, t) -> {
+            String ref = s.get$ref();
+            if (ref != null && ref.startsWith(prefix)) {
+                // only the first segment names the schema; refs such as
+                // #/components/schemas/Pet/properties/id point inside an existing schema
+                String name = ref.substring(prefix.length()).split("/", 2)[0];
+                name = URLDecoder.decode(name, StandardCharsets.UTF_8).replace("~1", "/").replace("~0", "~");
+                if (!schemas.containsKey(name)) {
+                    unresolved.add(ref);
+                }
+            }
+        };
+
+        visitOpenAPI(openAPI, visitor);
+        List<String> visitedSchemas = new ArrayList<>();
+        for (Schema schema : schemas.values()) {
+            visitSchema(openAPI, schema, null, visitedSchemas, visitor);
+        }
+        return new ArrayList<>(unresolved);
+    }
+
+    /**
      * Return the list of schemas in the 'components/schemas' used only in a 'application/x-www-form-urlencoded' or 'multipart/form-data' mime time
      *
      * @param openAPI specification
